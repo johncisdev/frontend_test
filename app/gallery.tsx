@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Avatar from "boring-avatars";
 import {
   FaRegCircleXmark,
@@ -13,6 +13,7 @@ import Controls from "./controls";
 import Modal from "./modal";
 
 import { User } from "./types/user";
+import { SortObject } from "./types/sort";
 
 export type GalleryProps = {
   users: User[];
@@ -21,6 +22,10 @@ const Gallery = ({ users }: GalleryProps) => {
   const [usersList, setUsersList] = useState(users);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [sortObject, setSortObject] = useState<SortObject>({
+    sortField: "",
+    sortDirection: "",
+  });
 
   const handleModalOpen = (id: number) => {
     const user = usersList.find((item) => item.id === id) || null;
@@ -36,11 +41,49 @@ const Gallery = ({ users }: GalleryProps) => {
     setIsModalOpen(false);
   };
 
+  const handleChangeSort = (field: string, value: string) => {
+    setSortObject({
+      ...sortObject,
+      [field]: value,
+    });
+  };
+
+  const sortChecker = (a: string, b: string, direction: string) => {
+    if (a < b) {
+      return direction === "descending" ? -1 : 1;
+    }
+    if (a > b) {
+      return direction === "descending" ? 1 : -1;
+    }
+    return 0;
+  };
+
+  const sortUsersList = () => {
+    return usersList.sort((a, b) => {
+      const { sortField, sortDirection } = sortObject;
+      console.log({ sortField, sortDirection })
+
+      // checks if a field is an object, and assume that the object contains name field
+      if (typeof a[sortField] === "object" || typeof b[sortField] === "object") {
+        const nameA = a[sortField]?.name?.toLowerCase();
+        const nameB = b[sortField]?.name?.toLowerCase();
+      return sortChecker(nameA, nameB, sortDirection);
+      } else {
+        return sortChecker(a[sortField], b[sortField], sortDirection);
+      }
+    });
+  };
+
+  useEffect(() => {
+    setUsersList(sortUsersList());
+  }, [sortObject]);
+
+
   return (
     <div className="user-gallery">
       <div className="heading">
         <h1 className="title">Users</h1>
-        <Controls />
+        <Controls handleChangeSort={handleChangeSort} />
       </div>
       <div className="items">
         {usersList.map((user, index) => (
